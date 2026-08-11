@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Classroom Monitor
+Comment=Start the VNC monitoring dashboard
+Exec=bash -c 'cd ~/vnc-monitor && source venv/bin/activate && python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 & sleep 2 && python3 -m http.server 3000 --directory frontend/build & sleep 1 && chromium-browser --start-fullscreen http://localhost:3000'
+Icon=network-wired
+Terminal=false

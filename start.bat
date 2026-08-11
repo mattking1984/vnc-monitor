@@ -1,0 +1,6 @@
+@echo off
+echo Starting VNC monitor backend...
+start cmd /k "cd /d %~dp0 && python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+
+echo Starting React frontend...
+start cmd /k "cd /d %~dp0\frontend && npm start"

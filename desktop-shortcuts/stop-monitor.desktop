@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Stop Monitor
+Comment=Stop the VNC monitoring dashboard
+Exec=bash -c 'pkill -f uvicorn; pkill -f "http.server 3000"; pkill -f chromium-browser'
+Icon=system-shutdown
+Terminal=false

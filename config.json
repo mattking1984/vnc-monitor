@@ -1,0 +1,72 @@
+{
+  "stations": [
+    {
+      "label": "Station 1",
+      "ip": "192.168.1.65"
+    },
+    {
+      "label": "Station 2",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 3",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 4",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 5",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 6",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 7",
+      "ip": "192.168.1.65"
+    },
+    {
+      "label": "Station 8",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 9",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 10",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 11",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 12",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 13",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 14",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 15",
+      "ip": "192.168.1.136"
+    },
+    {
+      "label": "Station 16",
+      "ip": "192.168.1.136"
+    }
+  ],
+  "vnc_port": 5900,
+  "vnc_password": "",
+  "poll_interval": 2.0,
+  "jpeg_quality": 70
+}
