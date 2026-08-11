@@ -2,6 +2,6 @@
 Type=Application
 Name=Classroom Monitor
 Comment=Start the VNC monitoring dashboard
-Exec=bash -c 'cd ~/vnc-monitor && source venv/bin/activate && python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 & sleep 2 && python3 -m http.server 3000 --directory frontend/build & sleep 1 && chromium-browser --start-fullscreen http://localhost:3000'
+Exec=bash -c 'LOGDIR=~/vnc-monitor/logs; mkdir -p "$LOGDIR"; LOG="$LOGDIR/monitor.log"; { echo "=== $(date "+%Y-%m-%d %H:%M:%S") classroom-monitor start ==="; cd ~/vnc-monitor || { echo "ERROR: ~/vnc-monitor not found"; exit 1; }; if [ -f venv/bin/activate ]; then source venv/bin/activate; else echo "ERROR: venv not found at ~/vnc-monitor/venv -- run: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"; exit 1; fi; python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 & echo "uvicorn started, pid $!"; sleep 2; if [ -d frontend/build ]; then python3 -m http.server 3000 --directory frontend/build & echo "http.server started, pid $!"; else echo "ERROR: frontend/build not found -- run: cd frontend && npm ci && npm run build"; fi; sleep 1; if command -v chromium-browser >/dev/null 2>&1; then BROWSER=chromium-browser; elif command -v chromium >/dev/null 2>&1; then BROWSER=chromium; else BROWSER=""; fi; if [ -n "$BROWSER" ]; then echo "launching $BROWSER"; "$BROWSER" --start-fullscreen http://localhost:3000; else echo "ERROR: neither chromium-browser nor chromium found on PATH"; fi; } >> "$LOG" 2>&1'
 Icon=network-wired
 Terminal=false

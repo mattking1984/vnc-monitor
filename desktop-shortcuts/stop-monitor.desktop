@@ -2,6 +2,6 @@
 Type=Application
 Name=Stop Monitor
 Comment=Stop the VNC monitoring dashboard
-Exec=bash -c 'pkill -f uvicorn; pkill -f "http.server 3000"; pkill -f chromium-browser'
+Exec=bash -c 'LOGDIR=~/vnc-monitor/logs; mkdir -p "$LOGDIR"; LOG="$LOGDIR/monitor.log"; { echo "=== $(date "+%Y-%m-%d %H:%M:%S") stop-monitor ==="; pkill -f uvicorn && echo "stopped uvicorn" || echo "no uvicorn process found"; pkill -f "http.server 3000" && echo "stopped http.server" || echo "no http.server process found"; pkill -f chromium-browser; pkill -f chromium; echo "stopped browser (if running)"; } >> "$LOG" 2>&1'
 Icon=system-shutdown
 Terminal=false
