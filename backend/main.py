@@ -52,15 +52,21 @@ def list_stations():
     ]
 
 
+ALLOWED_FRAME_SIZES = {"thumb", "medium", "full"}
+
+
 @app.get("/frame/{idx}")
-def get_frame(idx: int):
+def get_frame(idx: int, size: str = "thumb"):
+    if size not in ALLOWED_FRAME_SIZES:
+        raise HTTPException(status_code=400, detail="Invalid size")
     state = _grabber.get_state(idx)
     if state is None:
         raise HTTPException(status_code=404, detail="Station not found")
-    if not state.frame_jpeg:
+    frame = state.frame_jpeg.get(size)
+    if not frame:
         raise HTTPException(status_code=503, detail="No frame available")
     return Response(
-        content=state.frame_jpeg,
+        content=frame,
         media_type="image/jpeg",
         headers={"Cache-Control": "no-store"},
     )

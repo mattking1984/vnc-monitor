@@ -10,12 +10,21 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+# Cap each variant's dimensions (aspect-preserving) rather than always
+# encoding at native capture resolution — grid tiles never render anywhere
+# near full size, and even the fullscreen view rarely needs more than 720p.
+FRAME_SIZES = {
+    "thumb": (480, 270),
+    "medium": (960, 540),
+    "full": (1280, 720),
+}
+
 
 @dataclass
 class StationState:
     label: str
     ip: str
-    frame_jpeg: Optional[bytes] = None
+    frame_jpeg: dict = field(default_factory=dict)
     last_update: float = 0.0
     error: Optional[str] = None
     online: bool = False
@@ -67,9 +76,14 @@ class Grabber:
                         await asyncio.sleep(0.5)
                         pixels = await client.screenshot()
                         img = Image.fromarray(pixels[:, :, :3])
-                        buf = io.BytesIO()
-                        img.save(buf, format="JPEG", quality=quality)
-                        state.frame_jpeg = buf.getvalue()
+                        frames = {}
+                        for name, max_size in FRAME_SIZES.items():
+                            variant = img.copy()
+                            variant.thumbnail(max_size, Image.LANCZOS)
+                            buf = io.BytesIO()
+                            variant.save(buf, format="JPEG", quality=quality)
+                            frames[name] = buf.getvalue()
+                        state.frame_jpeg = frames
                         state.last_update = time.time()
                         state.online = True
                         await asyncio.sleep(interval)

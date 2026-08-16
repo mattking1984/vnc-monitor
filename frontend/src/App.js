@@ -7,13 +7,13 @@ const STALE_THRESHOLD_S = 10;
 
 // ── StationTile ──────────────────────────────────────────────────────────────
 
-function StationTile({ station, onSelect }) {
+function StationTile({ station, onSelect, sizeTier }) {
   const [imgSrc, setImgSrc] = useState(null);
 
   const refresh = useCallback(() => {
     if (!station.online) return;
-    setImgSrc(`${API}/frame/${station.idx}?t=${Date.now()}`);
-  }, [station.idx, station.online]);
+    setImgSrc(`${API}/frame/${station.idx}?size=${sizeTier}&t=${Date.now()}`);
+  }, [station.idx, station.online, sizeTier]);
 
   useEffect(() => {
     refresh();
@@ -53,7 +53,7 @@ function FullscreenModal({ station, onClose }) {
 
   useEffect(() => {
     if (!station) return;
-    const refresh = () => setImgSrc(`${API}/frame/${station.idx}?t=${Date.now()}`);
+    const refresh = () => setImgSrc(`${API}/frame/${station.idx}?size=full&t=${Date.now()}`);
     refresh();
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
@@ -348,6 +348,7 @@ export default function App() {
   }
   const cols = bestCols;
   const rows = Math.ceil(n / cols);
+  const sizeTier = visible.length <= 4 ? 'medium' : 'thumb';
 
   return (
     <div className={`app${light ? ' light' : ''}`}>
@@ -394,7 +395,7 @@ export default function App() {
         }}
       >
         {visible.map((s) => (
-          <StationTile key={s.idx} station={s} onSelect={setSelected} />
+          <StationTile key={s.idx} station={s} onSelect={setSelected} sizeTier={sizeTier} />
         ))}
       </main>
 
