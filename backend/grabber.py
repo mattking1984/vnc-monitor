@@ -20,6 +20,21 @@ FRAME_SIZES = {
 }
 
 
+def _encode_frames(pixels, quality: int) -> dict:
+    """Runs off the event loop thread — PIL's JPEG encoder is CPU-bound and
+    releases the GIL during the C-level work, so threading this lets
+    multiple stations' encodes actually overlap across CPU cores."""
+    img = Image.fromarray(pixels[:, :, :3])
+    frames = {}
+    for name, max_size in FRAME_SIZES.items():
+        variant = img.copy()
+        variant.thumbnail(max_size, Image.LANCZOS)
+        buf = io.BytesIO()
+        variant.save(buf, format="JPEG", quality=quality)
+        frames[name] = buf.getvalue()
+    return frames
+
+
 @dataclass
 class StationState:
     label: str
@@ -75,15 +90,7 @@ class Grabber:
                         client.video.refresh()
                         await asyncio.sleep(0.5)
                         pixels = await client.screenshot()
-                        img = Image.fromarray(pixels[:, :, :3])
-                        frames = {}
-                        for name, max_size in FRAME_SIZES.items():
-                            variant = img.copy()
-                            variant.thumbnail(max_size, Image.LANCZOS)
-                            buf = io.BytesIO()
-                            variant.save(buf, format="JPEG", quality=quality)
-                            frames[name] = buf.getvalue()
-                        state.frame_jpeg = frames
+                        state.frame_jpeg = await asyncio.to_thread(_encode_frames, pixels, quality)
                         state.last_update = time.time()
                         state.online = True
                         await asyncio.sleep(interval)
