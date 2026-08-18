@@ -92,8 +92,20 @@ class Grabber:
                         # here was just an unnecessary duplicate round trip
                         # (kept historically for TigerVNC; not needed for
                         # WayVNC, which is all the lab stations run).
+                        capture_start = time.monotonic()
                         pixels = await client.screenshot()
+                        capture_s = time.monotonic() - capture_start
+
+                        encode_start = time.monotonic()
                         state.frame_jpeg = await asyncio.to_thread(_encode_frames, pixels, quality)
+                        encode_s = time.monotonic() - encode_start
+
+                        if capture_s + encode_s > 2.0:
+                            logger.warning(
+                                "Station %s (%s) slow cycle: capture=%.2fs encode=%.2fs",
+                                state.label, ip, capture_s, encode_s,
+                            )
+
                         state.last_update = time.time()
                         state.online = True
                         await asyncio.sleep(interval)
