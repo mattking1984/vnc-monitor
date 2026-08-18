@@ -20,6 +20,43 @@ FRAME_SIZES = {
 }
 
 
+# Bound on how long an *incremental* capture waits for a change before
+# giving up and reusing the existing (unchanged) frame. The very first
+# capture on a connection always waits unbounded, since it's a genuine
+# full-screen transfer that has to complete.
+INCREMENTAL_CAPTURE_TIMEOUT_S = 3.0
+
+
+async def _capture(client: asyncvnc.Client):
+    """Requests a video update and returns the current RGBA framebuffer.
+
+    client.screenshot() resets internal state and re-requests the entire
+    screen on every call, regardless of whether anything changed — with 20+
+    stations all doing that every cycle, that full-frame retransfer was the
+    actual network bottleneck. Driving refresh()/read() directly instead
+    lets asyncvnc's own incremental logic kick in after the first frame, so
+    only changed regions get requested and transferred.
+    """
+    first_capture = client.video.data is None
+    client.video.refresh()
+    if first_capture:
+        while True:
+            update_type = await client.read()
+            if update_type is asyncvnc.UpdateType.VIDEO and client.video.is_complete():
+                break
+    else:
+        try:
+            while True:
+                update_type = await asyncio.wait_for(
+                    client.read(), timeout=INCREMENTAL_CAPTURE_TIMEOUT_S
+                )
+                if update_type is asyncvnc.UpdateType.VIDEO and client.video.is_complete():
+                    break
+        except asyncio.TimeoutError:
+            pass  # nothing changed since the last capture — reuse the existing frame
+    return client.video.as_rgba()
+
+
 def _encode_frames(pixels, quality: int) -> dict:
     """Runs off the event loop thread — PIL's JPEG encoder is CPU-bound and
     releases the GIL during the C-level work, so threading this lets
@@ -87,13 +124,8 @@ class Grabber:
                 async with asyncvnc.connect(ip, port, **kwargs) as client:
                     state.error = None
                     while True:
-                        # screenshot() does its own internal refresh() every
-                        # call, so the extra explicit refresh()+0.5s sleep
-                        # here was just an unnecessary duplicate round trip
-                        # (kept historically for TigerVNC; not needed for
-                        # WayVNC, which is all the lab stations run).
                         capture_start = time.monotonic()
-                        pixels = await client.screenshot()
+                        pixels = await _capture(client)
                         capture_s = time.monotonic() - capture_start
 
                         encode_start = time.monotonic()
