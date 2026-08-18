@@ -87,8 +87,11 @@ class Grabber:
                 async with asyncvnc.connect(ip, port, **kwargs) as client:
                     state.error = None
                     while True:
-                        client.video.refresh()
-                        await asyncio.sleep(0.5)
+                        # screenshot() does its own internal refresh() every
+                        # call, so the extra explicit refresh()+0.5s sleep
+                        # here was just an unnecessary duplicate round trip
+                        # (kept historically for TigerVNC; not needed for
+                        # WayVNC, which is all the lab stations run).
                         pixels = await client.screenshot()
                         state.frame_jpeg = await asyncio.to_thread(_encode_frames, pixels, quality)
                         state.last_update = time.time()
