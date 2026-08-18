@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-const POLL_MS = 3000;
+const DEFAULT_POLL_MS = 3000;
 const STALE_THRESHOLD_S = 10;
 
 // ── StationTile ──────────────────────────────────────────────────────────────
 
-function StationTile({ station, onSelect, sizeTier }) {
+function StationTile({ station, onSelect, sizeTier, pollMs }) {
   const [imgSrc, setImgSrc] = useState(null);
 
   const refresh = useCallback(() => {
@@ -17,9 +17,9 @@ function StationTile({ station, onSelect, sizeTier }) {
 
   useEffect(() => {
     refresh();
-    const id = setInterval(refresh, POLL_MS);
+    const id = setInterval(refresh, pollMs);
     return () => clearInterval(id);
-  }, [refresh]);
+  }, [refresh, pollMs]);
 
   const stale = station.online && (Date.now() / 1000 - station.last_update) > STALE_THRESHOLD_S;
   const statusClass = !station.online ? 'offline' : stale ? 'stale' : 'online';
@@ -48,16 +48,16 @@ function StationTile({ station, onSelect, sizeTier }) {
 
 // ── FullscreenModal ──────────────────────────────────────────────────────────
 
-function FullscreenModal({ station, onClose }) {
+function FullscreenModal({ station, onClose, pollMs }) {
   const [imgSrc, setImgSrc] = useState(null);
 
   useEffect(() => {
     if (!station) return;
     const refresh = () => setImgSrc(`${API}/frame/${station.idx}?size=full&t=${Date.now()}`);
     refresh();
-    const id = setInterval(refresh, POLL_MS);
+    const id = setInterval(refresh, pollMs);
     return () => clearInterval(id);
-  }, [station]);
+  }, [station, pollMs]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -298,6 +298,7 @@ export default function App() {
   const [pickedIdxs, setPickedIdxs] = useState([]);
   const [light, setLight] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [pollMs, setPollMs] = useState(DEFAULT_POLL_MS);
 
   const fetchStations = useCallback(async () => {
     try {
@@ -309,11 +310,25 @@ export default function App() {
     }
   }, []);
 
+  const fetchPollInterval = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/config`);
+      const data = await res.json();
+      if (data.poll_interval) setPollMs(data.poll_interval * 1000);
+    } catch (e) {
+      console.error('Failed to fetch config:', e);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStations();
-    const id = setInterval(fetchStations, POLL_MS);
+    fetchPollInterval();
+  }, [fetchStations, fetchPollInterval]);
+
+  useEffect(() => {
+    const id = setInterval(fetchStations, pollMs);
     return () => clearInterval(id);
-  }, [fetchStations]);
+  }, [fetchStations, pollMs]);
 
   function applyPageSize(val) {
     setPageSize(val);
@@ -395,16 +410,16 @@ export default function App() {
         }}
       >
         {visible.map((s) => (
-          <StationTile key={s.idx} station={s} onSelect={setSelected} sizeTier={sizeTier} />
+          <StationTile key={s.idx} station={s} onSelect={setSelected} sizeTier={sizeTier} pollMs={pollMs} />
         ))}
       </main>
 
-      <FullscreenModal station={selected} onClose={() => setSelected(null)} />
+      <FullscreenModal station={selected} onClose={() => setSelected(null)} pollMs={pollMs} />
 
       {showSettings && (
         <SettingsModal
           onClose={() => setShowSettings(false)}
-          onSaved={fetchStations}
+          onSaved={() => { fetchStations(); fetchPollInterval(); }}
         />
       )}
     </div>
